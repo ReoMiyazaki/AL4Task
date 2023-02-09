@@ -123,14 +123,14 @@ void GameScene::Initialize(DirectXCommon* dxCommon, Input* input) {
 	//3Dオブジェクトの位置を指定
 	{
 		key->SetPosition({ distX(engine),0,distZ(engine) });
-		skydome->SetScale({ 10000, 10000, 10000 });
 	}
 	// 3Dオブジェクトの向きを変更
 	{
 		player->SetRotate({ 0,0,180 });
 	}
-	// 3Dオブジェクトの向きを変更
+	// 3Dオブジェクトの大きさを変更
 	{
+		skydome->SetScale({ 10000, 10000, 10000 });
 		player->SetScale({ 0.5f, 0.5f, 0.5f });
 	}
 
@@ -166,7 +166,7 @@ void GameScene::Update() {
 
 	case 2:
 		time--;
-		limit = time / 60;	// 1が出力されん
+		limit = time / 60;
 
 		// オブジェクト移動
 		if (input->PushKey(DIK_UP) || input->PushKey(DIK_DOWN) || input->PushKey(DIK_RIGHT) || input->PushKey(DIK_LEFT))
@@ -189,13 +189,24 @@ void GameScene::Update() {
 			player->SetPosition(position);
 		}
 
+		XMFLOAT3 scale = skydome->GetScale();
+
+		if (input->PushKey(DIK_W) || input->PushKey(DIK_S))
+		{
+			if (input->PushKey(DIK_W)) { scale.x += 10, scale.y += 10, scale.z += 10; }
+			else if (input->PushKey(DIK_S)) { scale.x -= 10, scale.y -= 10, scale.z -= 10; }
+		}
+		skydome->SetScale(scale);
+
+		
+
 		if (0 < time && isHit == 1)
 		{
-			scene = 3;
+			//scene = 3;
 		}
 		if (time <= 0)
 		{
-			scene = 4;
+			//scene = 4;
 		}
 		break;
 	case 3:
