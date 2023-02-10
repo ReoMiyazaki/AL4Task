@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CollisionPrimitive.h"
 #include "DirectXCommon.h"
 #include <DirectXMath.h>
 #include "Input.h"
@@ -60,45 +61,30 @@ private: // メンバ変数
 	Input* input = nullptr;
 	SpriteCommon* spriteCommon = nullptr;
 	Audio* audio = nullptr;
-	
+
+	// 当たり判定 球
+	Sphere sphere;
+	// 当たり判定 平面
+	Plane plane;
+
 	/// <summary>
 	/// ゲームシーン用
 	/// </summary>
-	Sprite* title = new Sprite();
-	XMFLOAT2 titlePos = title->GetPosition();
+	
+	//Sprite* 変数名 = new Sprite();
+	//XMFLOAT2 変数名 = Spriteの変数名->GetPosition();
 
-	Sprite* rule = new Sprite();
-	XMFLOAT2 rulePos = rule->GetPosition();
+	Object3d* skydome = nullptr;
+	Object3d* sphere1 = nullptr;
+	Object3d* sphere2 = nullptr;
+	Object3d* floor = nullptr;
 
-	Sprite* cle = new Sprite();
-	XMFLOAT2 clePos = cle->GetPosition();
-
-	Sprite* over = new Sprite();
-	XMFLOAT2 overPos = over->GetPosition();
-
-	Sprite* font1 = new Sprite();
-	XMFLOAT2 font1Pos = font1->GetPosition();
-
-	Sprite* font2 = new Sprite();
-	XMFLOAT2 font2Pos = font2->GetPosition();
-
-	Sprite* font3 = new Sprite();
-	XMFLOAT2 font3Pos = font3->GetPosition();
+	Model* skydomeModel = nullptr;
+	Model* sphere1Model = nullptr;
+	Model* sphere2Model = nullptr;
+	Model* floorModel = nullptr;
 
 	// 当たったかどうか
 	int isHit = 0;
-
-	Object3d* player = nullptr;
-	Object3d* key = nullptr;
-	Object3d* skydome = nullptr;
-
-	Model* playerModel = nullptr;
-	Model* keyModel = nullptr;
-	Model* skydomeModel = nullptr;
-
-	int scene = 0;
-	int time = 180;
-
-	int limit = 0;
 };
 
