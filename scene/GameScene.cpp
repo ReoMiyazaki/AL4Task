@@ -1,5 +1,10 @@
 #include "GameScene.h"
+
 #include "Affine.h"
+#include "Collision.h"
+#include "CollisionPrimitive.h"
+#include <sstream>
+#include <iomanip>
 #include <cassert>
 #include <random>
 
@@ -15,14 +20,16 @@ GameScene::GameScene() {}
 
 GameScene::~GameScene() {
 	//3Dオブジェクト解放
-	delete player;
-	delete key;
 	delete skydome;
+	delete sphere1;
+	delete sphere2;
+	delete floor;
 
 	//3Dモデル解放
-	delete playerModel;
-	delete keyModel;
 	delete skydomeModel;
+	delete sphere1;
+	delete sphere2;
+	delete floor;
 
 	//オーディオ解放
 	audio->Finalize();
@@ -41,188 +48,80 @@ void GameScene::Initialize(DirectXCommon* dxCommon, Input* input) {
 	spriteCommon = new SpriteCommon;
 	spriteCommon->Initialize(dxCommon);
 
-	//スプライトの初期化
-	{
-		title->Initialize(spriteCommon);
-		titlePos.x = 0.0f;
-		titlePos.y = 0.0f;
-		title->SetPozition(titlePos);
-		title->SetSize(XMFLOAT2{ 1280.0f, 720.0f });
-
-		rule->Initialize(spriteCommon);
-		rulePos.x = 0.0f;
-		rulePos.y = 0.0f;
-		rule->SetPozition(rulePos);
-		rule->SetSize(XMFLOAT2{ 1280.0f, 720.0f });
-
-		cle->Initialize(spriteCommon);
-		clePos.x = 0.0f;
-		clePos.y = 0.0f;
-		cle->SetPozition(clePos);
-		cle->SetSize(XMFLOAT2{ 1280.0f, 720.0f });
-
-		over->Initialize(spriteCommon);
-		overPos.x = 0.0f;
-		overPos.y = 0.0f;
-		over->SetPozition(overPos);
-		over->SetSize(XMFLOAT2{ 1280.f, 720.0f });
-
-		font1->Initialize(spriteCommon);
-		font1Pos.x = 576.0f;
-		font1Pos.y = 296.0f;
-		font1->SetPozition(font1Pos);
-		font1->SetSize(XMFLOAT2{ 128.0f, 128.0f });
-
-		font2->Initialize(spriteCommon);
-		font2Pos.x = 576.0f;
-		font2Pos.y = 296.0f;
-		font2->SetPozition(font2Pos);
-		font2->SetSize(XMFLOAT2{ 128.0f, 128.0f });
-
-		font3->Initialize(spriteCommon);
-		font3Pos.x = 576.0f;
-		font3Pos.y = 296.0f;
-		font3->SetPozition(font3Pos);
-		font3->SetSize(XMFLOAT2{ 128.0f, 128.0f });
-	}
-	//スプライトの画像指定
-	{
-		spriteCommon->LoadTexture(0, "title.png");
-		title->SetTextureIndex(0);
-		spriteCommon->LoadTexture(1, "rule.png");
-		rule->SetTextureIndex(1);
-		spriteCommon->LoadTexture(2, "cle.png");
-		cle->SetTextureIndex(2);
-		spriteCommon->LoadTexture(3, "over.png");
-		over->SetTextureIndex(3);
-		spriteCommon->LoadTexture(4, "1.png");
-		font1->SetTextureIndex(4);
-		spriteCommon->LoadTexture(5, "2.png");
-		font2->SetTextureIndex(5);
-		spriteCommon->LoadTexture(6, "3.png");
-		font3->SetTextureIndex(6);
-	}
 	// OBJからモデルデータを読み込み
 	{
-		playerModel = Model::LoadFromOBJ("player");
-		keyModel = Model::LoadFromOBJ("enemy");
 		skydomeModel = Model::LoadFromOBJ("skydome");
+		/*sphere1Model = Model::LoadFromOBJ("sphere1");
+		sphere2Model = Model::LoadFromOBJ("sphere1");
+		floorModel = Model::LoadFromOBJ("floor");*/
 	}
 	//3Dオブジェクト生成
 	{
-		player = Object3d::Create();
-		key = Object3d::Create();
 		skydome = Object3d::Create();
+		/*sphere1 = Object3d::Create();
+		sphere2 = Object3d::Create();
+		floor = Object3d::Create();*/
 	}
 	// オブジェクトにモデルを紐づける
 	{
-		player->SetModel(playerModel);
-		key->SetModel(keyModel);
 		skydome->SetModel(skydomeModel);
+		/*sphere1->SetModel(sphere1Model);
+		sphere2->SetModel(sphere2Model);
+		floor->SetModel(floorModel);*/
 	}
-	//3Dオブジェクトの位置を指定
+	// 3Dオブジェクトの位置を指定
 	{
-		key->SetPosition({ distX(engine),0,distZ(engine) });
+		/*sphere1->SetPosition({ 0,0,0 });
+		sphere2->SetPosition({ 0,0,0 });
+		floor->SetPosition({ 0,0,0 });*/
+	}
+	// 3Dオブジェクトの大きさを指定
+	{
 		skydome->SetScale({ 10000, 10000, 10000 });
+		//floor->SetScale({ 50,1,50 });
 	}
-	// 3Dオブジェクトの向きを変更
+	// 当たり判定関係
 	{
-		player->SetRotate({ 0,0,180 });
-	}
-	// 3Dオブジェクトの向きを変更
-	{
-		player->SetScale({ 0.5f, 0.5f, 0.5f });
+		// 弾の初期値を設定
+		sphere.center = XMVectorSet(0, 2, 0, 1);	// 中心点座標
+		sphere.radius = 1.0f;	// 半径
+		// 平面の初期値を設定
+		plane.normal = XMVectorSet(0, 2, 0, 1);	// 法線ベクトル
+		plane.distance = 0.0f;	// 原点(0,0,0)からの距離
 	}
 
 	audio = new Audio();
 	audio->Initialize();
 }
 
-
 void GameScene::Update() {
-	player->Update();
 	skydome->Update();
-	switch (scene)
+	/*sphere1->Update();
+	sphere2->Update();
+	floor->Update();*/
+
+	XMVECTOR moveX = XMVectorSet(0.01f, 0, 0, 0);
+	XMVECTOR moveY = XMVectorSet(0, 0.01f, 0, 0);
+
+	// オブジェクト移動
+	if (input->PushKey(DIK_UP) || input->PushKey(DIK_DOWN) || input->PushKey(DIK_RIGHT) || input->PushKey(DIK_LEFT))
 	{
-
-	case 0:
-		if (input->TriggerKey(DIK_SPACE))
-		{
-			scene = 1;
-			player->SetPosition(XMFLOAT3{ 0,0,-10 });
-			isHit = 0;
-			limit = 3;
-			time = 180;
-		}
-		break;
-
-	case 1:
-		if (input->TriggerKey(DIK_SPACE))
-		{
-			scene = 2;
-			key->SetPosition({ distX(engine), 0, distZ(engine) });
-		}
-		break;
-
-	case 2:
-		time--;
-		limit = time / 60;	// 1が出力されん
-
-		// オブジェクト移動
-		if (input->PushKey(DIK_UP) || input->PushKey(DIK_DOWN) || input->PushKey(DIK_RIGHT) || input->PushKey(DIK_LEFT))
-		{
-			// 現在の座標を取得
-			XMFLOAT3 position = player->GetPosition();
-
-			// 移動後の座標を計算
-			if (input->PushKey(DIK_UP)) { position.z += 1.0f; }
-			else if (input->PushKey(DIK_DOWN)) { position.z -= 1.0f; }
-			if (input->PushKey(DIK_RIGHT)) { position.x -= 1.0f; }
-			else if (input->PushKey(DIK_LEFT)) { position.x += 1.0f; }
-
-			if (position.x < -50) { position.x = -50; }
-			if (position.x > 50) { position.x = 50; }
-			if (position.z > 100) { position.z = 100; }
-			if (position.z < -100) { position.z = -50; }
-
-			// 座標の変更を反映
-			player->SetPosition(position);
-		}
-
-		if (0 < time && isHit == 1)
-		{
-			scene = 3;
-		}
-		if (time <= 0)
-		{
-			scene = 4;
-		}
-		break;
-	case 3:
-		if (input->TriggerKey(DIK_SPACE))
-		{
-			scene = 0;
-		}
-		break;
-	case 4:
-		if (input->TriggerKey(DIK_SPACE))
-		{
-			scene = 0;
-		}
-		break;
+		// 移動後の座標を計算
+		if (input->PushKey(DIK_RIGHT)) { sphere.center += moveX; }
+		else if (input->PushKey(DIK_LEFT)) { sphere.center -= moveX; }
+		if (input->PushKey(DIK_UP)) { sphere.center += moveY; }
+		else if (input->PushKey(DIK_DOWN)) { sphere.center -= moveY; }
 	}
 
+	Collision::CheckSphere2Plane(sphere, plane);
 
-	key->Update();
-
-	//当たり判定
-	XMFLOAT3 a = key->GetPosition();
-	XMFLOAT3 b = player->GetPosition();
-	float xyz = std::pow(a.x - b.x, 2.0f) + std::pow(a.y - b.y, 2.0f) + std::pow(a.z - b.z, 2.0f);
-	float lenR = std::pow(1.0f + 1.0f, 2.0f);
-	if (xyz <= lenR) {
-		isHit = 1;
-	}
+	// stringstreamで変数の値を埋め込んで整形する
+	std::ostringstream spherestr;
+	spherestr << "Sphere:("
+		<< std::fixed << std::setprecision(2)	// 小数点以下2桁まで
+		<< sphere.center.m128_f32[0] << ","		// x
+		<< sphere.center.m128_f32[1] << ","		// y
+		<< sphere.center.m128_f32[2] << ")";	// z
 
 }
 
@@ -235,35 +134,11 @@ void GameScene::Draw() {
 	/// <summary>
 
 	//3Dオブジェクトの描画
-	player->Draw();
-	key->Draw();
 	skydome->Draw();
+	/*sphere1->Draw();
+	sphere2->Draw();
+	floor->Draw();*/
 
 	//3Dオブジェクト描画後処理
 	Object3d::PostDraw();
-
-	// スプライトの描画
-	switch (scene)
-	{
-	case 0:
-		title->Draw();
-		break;
-	case 1:
-		rule->Draw();
-		break;
-	case 2:
-		if (limit == 2) { font3->Draw(); }
-		if (limit == 1) { font2->Draw(); }
-		if (limit == 0) { font1->Draw(); }
-		break;
-	case 3:
-		cle->Draw();
-		break;
-	case 4:
-		over->Draw();
-		break;
-	}
-
-
-
 }
